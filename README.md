@@ -21,7 +21,8 @@ Travelio is a full-stack property booking platform built with a Django REST API 
    - `python -m venv venv`
    - `source venv/bin/activate`
 3. Install dependencies:
-   - `pip install django djangorestframework djangorestframework-simplejwt psycopg2-binary django-cors-headers`
+   - `pip install -r requirements.txt`  
+     (includes **Pillow** for property image uploads.)
 4. Create a local environment file from the template at project root:
    - `cp .env.example .env`
 5. Fill in your local secret values in `.env` (especially `DJANGO_SECRET_KEY` and `POSTGRES_PASSWORD`).
@@ -62,3 +63,7 @@ You can run PostgreSQL with Docker Compose using environment values from root `.
 
 - Auth uses JWT tokens stored in browser local storage.
 - Protected routes are enforced in the frontend.
+- Property photos are stored under `backend/media/property_images/` (ignored by git). With `DEBUG=True`, Django serves them at `http://127.0.0.1:8000/media/...`. The API returns absolute URLs in `images[].image_url` for use from the React dev server.
+- Bookings are exposed at `POST /api/bookings/create/`. A property must have at least one **Room** in the database (Django admin or API) or booking will return a validation error.
+- Profile-related APIs: `GET /api/auth/me/` (current user; includes `assigned_property` for receptionists), `GET /api/bookings/my-bookings/` (your bookings). Owners: `GET /api/listings/my-properties/` (properties with nested rooms), `GET|POST /api/listings/properties/<id>/rooms/` (list/add rooms), `GET|PATCH|DELETE /api/listings/rooms/<id>/` (room detail), `GET|POST|DELETE /api/listings/properties/<id>/receptionist/` (assign or remove a receptionist by `username` / `user_id`).
+- Receptionists: `GET /api/bookings/reception/` (bookings at assigned property), `POST /api/bookings/<id>/confirm/`, `POST .../check-in/`, `POST .../check-out/`. They may `PATCH` only `availability_status` on rooms (`maintenance`, etc.) for their property.

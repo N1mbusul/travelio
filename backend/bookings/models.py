@@ -37,6 +37,9 @@ class Booking(models.Model):
         default='asteptare'
     )
 
+    checked_in_at = models.DateTimeField(null=True, blank=True)
+    checked_out_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

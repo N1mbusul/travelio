@@ -2,6 +2,30 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 
+function formatBookingError(err) {
+  if (!err.response) {
+    return "Network error. Please try again.";
+  }
+  const { status, data } = err.response;
+  if (status === 401) {
+    return "Your session expired. Please log in again.";
+  }
+  if (status === 404) {
+    return "Booking endpoint not found. Ensure the API is running and up to date.";
+  }
+  if (typeof data === "string") return data;
+  if (data?.detail) return data.detail;
+  if (data && typeof data === "object") {
+    const messages = [];
+    for (const val of Object.values(data)) {
+      if (Array.isArray(val)) messages.push(...val.filter(Boolean));
+      else if (typeof val === "string") messages.push(val);
+    }
+    if (messages.length) return messages[0];
+  }
+  return `Could not complete booking (HTTP ${status}).`;
+}
+
 export default function PropertyDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -15,13 +39,52 @@ export default function PropertyDetails() {
   const today = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
-    api.get(`listings/properties/${id}/`)
-      .then((res) => {
-        setProperty(res.data);
-      })
-      .catch((err) => console.error("Eroare la încărcarea proprietății:", err))
-      .finally(() => setLoading(false));
-  }, [id]);
+    let cancelled = false;
+
+    (async () => {
+      setLoading(true);
+      setProperty(null);
+      try {
+        const propRes = await api.get(`listings/properties/${id}/`);
+        const propData = propRes.data;
+
+        let me = null;
+        try {
+          const meRes = await api.get("auth/me/");
+          me = meRes.data;
+        } catch {
+          me = null;
+        }
+
+        const pid = Number(id);
+        if (me?.role === "owner") {
+          const myRes = await api.get("listings/my-properties/");
+          const ids = (Array.isArray(myRes.data) ? myRes.data : []).map((p) => p.id);
+          if (!ids.includes(pid)) {
+            if (!cancelled) navigate("/home", { replace: true });
+            return;
+          }
+        } else if (me?.role === "receptionist") {
+          const aid = me.assigned_property?.id;
+          if (aid == null || aid !== pid) {
+            if (!cancelled) navigate("/home", { replace: true });
+            return;
+          }
+        }
+
+        if (!cancelled) setProperty(propData);
+      } catch (err) {
+        console.error("Eroare la încărcarea proprietății:", err);
+        if (!cancelled) setProperty(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, navigate]);
 
   // Calculăm automat numărul de zile consecutive
   const calculateDays = () => {
@@ -43,23 +106,18 @@ export default function PropertyDetails() {
     try {
       // Endpoint-ul are / la final pentru a evita problemele de redirect în Django
       await api.post("bookings/create/", {
-        property: id,
+        property: Number(id),
         check_in: startDate,
         check_out: endDate,
         number_of_guests: guests,
-        number_of_days: days
+        number_of_days: days,
       });
       
       alert("Rezervare efectuată cu succes!");
       navigate("/profile");
     } catch (err) {
-      // Logăm eroarea completă în consolă pentru debug
-      console.error("Detalii eroare server:", err.response?.data);
-      
-      const message = err.response?.data?.non_field_errors?.[0] || 
-                      err.response?.data?.detail || 
-                      "Eroare la rezervare. Verifică dacă ești logat și dacă perioada e disponibilă.";
-      alert(message);
+      console.error("Booking error:", err.response?.data ?? err.message);
+      alert(formatBookingError(err));
     }
   };
 
@@ -74,7 +132,12 @@ export default function PropertyDetails() {
         <div style={styles.imageGallery}>
           {property.images && property.images.length > 0 ? (
             property.images.map((img, idx) => (
-              <img key={idx} src={img.image} style={styles.mainImg} alt="property" />
+              <img
+                key={img.id ?? idx}
+                src={img.image_url || img.image}
+                style={styles.mainImg}
+                alt={property.name}
+              />
             ))
           ) : (
             <div style={styles.noImage}>Fără imagini disponibile</div>

@@ -37,3 +37,6 @@ pnpm-debug.log*
 *.log
 dist/
 build/
+
+# User uploads (Django)
+backend/media/

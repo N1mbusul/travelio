@@ -19,6 +19,15 @@ class User(AbstractUser):
         default='client'
     )
 
+    # Receptionists work at a single property (assigned by the owner).
+    assigned_property = models.ForeignKey(
+        "listings.Property",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="assigned_receptionists",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
