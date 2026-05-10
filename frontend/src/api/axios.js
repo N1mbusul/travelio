@@ -6,8 +6,12 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("access");
-  
-  if (token) {
+  const url = config.url || "";
+  // Only omit Bearer on unauthenticated auth endpoints — `auth/me/` must receive the JWT.
+  const skipAuthHeader =
+    url.startsWith("auth/login/") || url.startsWith("auth/register/");
+
+  if (token && !skipAuthHeader) {
     config.headers.Authorization = `Bearer ${token}`;
   }
 

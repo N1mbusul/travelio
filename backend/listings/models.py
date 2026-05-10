@@ -77,4 +77,7 @@ class Room(models.Model):
 
 class PropertyImage(models.Model):
     property = models.ForeignKey(Property, related_name='images', on_delete=models.CASCADE)
-    image = models.ImageField(upload_to='property_images/') # Verifică să fie ImageField
+    image = models.ImageField(upload_to='property_images/')
+
+    class Meta:
+        ordering = ['id']

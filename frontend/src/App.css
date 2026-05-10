@@ -159,6 +159,21 @@
   box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
 }
 
+.create-field-label {
+  display: block;
+  margin: 0 0 6px 2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.create-field-hint {
+  margin: 0 0 10px 2px;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.45;
+}
+
 .create-header {
   display: flex;
   align-items: center;

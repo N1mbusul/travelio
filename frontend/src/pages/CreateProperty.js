@@ -9,6 +9,7 @@ export default function CreateProperty() {
     address: "",
     country: "",
     description: "",
+    capacity: 1,
     property_type: "hotel",
   });
   const [error, setError] = useState("");
@@ -31,20 +32,15 @@ export default function CreateProperty() {
     formData.append("address", form.address);
     formData.append("country", form.country);
     formData.append("description", form.description);
+    formData.append("capacity", String(form.capacity || 1));
     formData.append("property_type", form.property_type);
 
-    // Adăugăm fiecare imagine selectată în formData
-    // Numele "uploaded_images" trebuie să fie același cu cel așteptat de colegul tău pe Backend
     for (let i = 0; i < images.length; i++) {
       formData.append("uploaded_images", images[i]);
     }
 
     try {
-      await api.post("listings/properties/", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      await api.post("listings/properties/", formData);
       setSuccess("Property created successfully.");
       setForm({
         name: "",
@@ -52,6 +48,7 @@ export default function CreateProperty() {
         address: "",
         country: "",
         description: "",
+        capacity: 1,
         property_type: "hotel",
       });
       setImages([]);
@@ -104,6 +101,22 @@ export default function CreateProperty() {
           placeholder="Country"
           onChange={(e) => setForm({ ...form, country: e.target.value })}
         />
+        <label className="create-field-label" htmlFor="property-capacity">
+          Maximum guests
+        </label>
+        <p id="property-capacity-hint" className="create-field-hint">
+          How many guests can stay here at the same time. Guests cannot book with a party larger than this number.
+          Example: use <strong>8</strong> if up to eight guests are allowed.
+        </p>
+        <input
+          id="property-capacity"
+          className="create-input"
+          type="number"
+          min={1}
+          value={form.capacity}
+          aria-describedby="property-capacity-hint"
+          onChange={(e) => setForm({ ...form, capacity: parseInt(e.target.value, 10) || 1 })}
+        />
         <select
           className="create-input"
           value={form.property_type}
@@ -119,7 +132,7 @@ export default function CreateProperty() {
             type="file"
             multiple
             accept="image/*"
-            onChange={(e) => setImages(e.target.files)}
+            onChange={(e) => setImages(e.target.files ? Array.from(e.target.files) : [])}
             className="create-input"
             style={{ padding: "5px" }}
           />
