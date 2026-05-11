@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import api from "../api/axios";
+import api, { ADMIN_SITE_URL } from "../api/axios";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -55,6 +55,12 @@ export default function Login() {
         <p className="auth-footnote">
           New to Travelio? <Link to="/register">Create account</Link>
         </p>
+        <div className="auth-portal-links" role="navigation" aria-label="Other entry points">
+          <span className="auth-portal-label">Also:</span>
+          <a href={ADMIN_SITE_URL} target="_blank" rel="noopener noreferrer">
+            Django admin (staff)
+          </a>
+        </div>
       </div>
     </div>
   );

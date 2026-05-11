@@ -1,7 +1,12 @@
 import axios from "axios";
 
+const API_ORIGIN = process.env.REACT_APP_API_ORIGIN || "http://127.0.0.1:8000";
+
+/** Django admin panel (staff accounts only — same host as the API). */
+export const ADMIN_SITE_URL = `${API_ORIGIN.replace(/\/$/, "")}/admin/`;
+
 const api = axios.create({
-  baseURL: "http://127.0.0.1:8000/api/",
+  baseURL: `${API_ORIGIN.replace(/\/$/, "")}/api/`,
 });
 
 api.interceptors.request.use((config) => {

@@ -16,6 +16,20 @@ const emptyRoomForm = {
   description: "",
 };
 
+function formatAssignError(payload) {
+  if (!payload) return "Could not assign receptionist.";
+  const { detail } = payload;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((entry) =>
+        typeof entry === "string" ? entry : entry?.string || String(entry),
+      )
+      .join(" ");
+  }
+  return "Could not assign receptionist.";
+}
+
 export default function OwnerDashboard() {
   const [ownerProperties, setOwnerProperties] = useState([]);
   const [propertiesLoading, setPropertiesLoading] = useState(true);
@@ -26,6 +40,7 @@ export default function OwnerDashboard() {
   const [editRoomForm, setEditRoomForm] = useState(emptyRoomForm);
   const [receptionistByProperty, setReceptionistByProperty] = useState({});
   const [assignUsername, setAssignUsername] = useState({});
+  const [assignErrorByProperty, setAssignErrorByProperty] = useState({});
 
   const loadOwnerProperties = useCallback(async () => {
     setPropertiesLoading(true);
@@ -164,16 +179,22 @@ export default function OwnerDashboard() {
   const assignReceptionist = async (propertyId) => {
     const u = (assignUsername[propertyId] || "").trim();
     if (!u) {
-      alert("Enter the receptionist username.");
+      setAssignErrorByProperty((prev) => ({
+        ...prev,
+        [propertyId]: "Enter the receptionist username.",
+      }));
       return;
     }
+    setAssignErrorByProperty((prev) => ({ ...prev, [propertyId]: "" }));
     try {
       await api.post(`listings/properties/${propertyId}/receptionist/`, { username: u });
       const r = await api.get(`listings/properties/${propertyId}/receptionist/`);
       setReceptionistByProperty((prev) => ({ ...prev, [propertyId]: r.data.receptionist }));
       setAssignUsername((prev) => ({ ...prev, [propertyId]: "" }));
+      setAssignErrorByProperty((prev) => ({ ...prev, [propertyId]: "" }));
     } catch (e) {
-      alert(e?.response?.data?.detail || "Could not assign receptionist.");
+      const msg = formatAssignError(e?.response?.data);
+      setAssignErrorByProperty((prev) => ({ ...prev, [propertyId]: msg }));
     }
   };
 
@@ -255,12 +276,16 @@ export default function OwnerDashboard() {
                             style={styles.input}
                             placeholder="Receptionist username"
                             value={assignUsername[prop.id] || ""}
-                            onChange={(e) =>
+                            onChange={(e) => {
                               setAssignUsername((prev) => ({
                                 ...prev,
                                 [prop.id]: e.target.value,
-                              }))
-                            }
+                              }));
+                              setAssignErrorByProperty((prev) => ({
+                                ...prev,
+                                [prop.id]: "",
+                              }));
+                            }}
                           />
                           <button
                             type="button"
@@ -271,8 +296,17 @@ export default function OwnerDashboard() {
                           </button>
                         </div>
                       )}
+                      {assignErrorByProperty[prop.id] ? (
+                        <p style={styles.recError} role="alert">
+                          {assignErrorByProperty[prop.id]}
+                        </p>
+                      ) : null}
                       <p style={styles.recHint}>
                         One receptionist per property. They manage bookings and room availability from their home page.
+                      </p>
+                      <p style={styles.recWarn}>
+                        You cannot assign a receptionist who is already working at someone else&apos;s property. Their
+                        current owner must remove them first; after that they appear available for your listing.
                       </p>
                     </div>
 
@@ -561,7 +595,26 @@ const styles = {
     alignItems: "center",
     marginBottom: "8px",
   },
-  recHint: { margin: 0, fontSize: "12px", color: "#6b7280", lineHeight: 1.45 },
+  recHint: {
+    margin: "0 0 8px 0",
+    fontSize: "12px",
+    color: "#6b7280",
+    lineHeight: 1.45,
+  },
+  recWarn: {
+    margin: 0,
+    fontSize: "12px",
+    color: "#92400e",
+    lineHeight: 1.45,
+    paddingLeft: "10px",
+    borderLeft: "3px solid #fbbf24",
+  },
+  recError: {
+    margin: "0 0 8px 0",
+    fontSize: "13px",
+    color: "#b91c1c",
+    lineHeight: 1.45,
+  },
   editPanel: {
     marginBottom: "16px",
     padding: "14px",

@@ -39,8 +39,15 @@ class PropertyDetailView(generics.RetrieveUpdateDestroyAPIView):
     def perform_destroy(self, instance):
         if not self.request.user.is_authenticated:
             raise PermissionDenied()
-        if instance.owner_id != self.request.user.id:
-            raise PermissionDenied('Only the owner can delete this property.')
+        user = self.request.user
+        if user.role != "owner" or instance.owner_id != user.id:
+            raise PermissionDenied(
+                'Only the property owner account can delete this listing.'
+            )
+        # Free receptionists so they can be assigned to another owner's property.
+        User.objects.filter(assigned_property_id=instance.pk).update(
+            assigned_property=None
+        )
         instance.delete()
 
 
@@ -172,6 +179,19 @@ class PropertyReceptionistAssignmentView(APIView):
         if rec.role != "receptionist":
             return Response(
                 {"detail": "User must have the receptionist role."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        existing_prop_id = rec.assigned_property_id
+        if existing_prop_id is not None and existing_prop_id != prop.id:
+            return Response(
+                {
+                    "detail": (
+                        "That receptionist is already assigned to another property. "
+                        "Their current employer must remove them before you can "
+                        "assign them here—you cannot move them from someone else's "
+                        "listing."
+                    )
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
         User.objects.filter(assigned_property=prop).exclude(pk=rec.pk).update(

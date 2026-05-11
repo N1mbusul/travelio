@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { ADMIN_SITE_URL } from "../api/axios";
 
 export default function SignIn() {
   return (
@@ -15,6 +16,13 @@ export default function SignIn() {
             Register
           </Link>
         </div>
+        <p className="signin-admin-hint">
+          Site operators with a staff account can open the{" "}
+          <a href={ADMIN_SITE_URL} target="_blank" rel="noopener noreferrer">
+            admin panel
+          </a>
+          .
+        </p>
       </div>
     </div>
   );
